@@ -126,6 +126,7 @@ python apps/texture_edit.py
 ```
 
 ### ⚡ API
+Support Chinese and English prompts.
 ```sh
 bash embodied_gen/scripts/texture_gen.sh \
     --mesh_path "apps/assets/example_texture/meshes/robot_text.obj" \
