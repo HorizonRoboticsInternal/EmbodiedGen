@@ -55,6 +55,7 @@ pip install git+https://github.com/nerfstudio-project/gsplat.git@v1.5.0 || {
 
 
 echo -e "${GREEN}Installing EmbodiedGen...${NC}"
+pip install triton==2.1.0
 pip install -e . || {
     echo -e "${RED}Failed to install EmbodiedGen pyproject.toml${NC}"
     exit 1

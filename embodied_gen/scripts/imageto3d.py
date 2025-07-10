@@ -62,6 +62,7 @@ os.environ["GRADIO_ANALYTICS_ENABLED"] = "false"
 os.environ["SPCONV_ALGO"] = "native"
 random.seed(0)
 
+logger.info("Loading Models...")
 DELIGHT = DelightingModel()
 IMAGESR_MODEL = ImageRealESRGAN(outscale=4)
 

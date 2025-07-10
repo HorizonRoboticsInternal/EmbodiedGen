@@ -44,7 +44,7 @@ __all__ = [
     "text_to_3d",
 ]
 
-
+logger.info("Loading Models...")
 SEMANTIC_CHECKER = SemanticConsistChecker(GPT_CLIENT)
 SEG_CHECKER = ImageSegChecker(GPT_CLIENT)
 TXTGEN_CHECKER = TextGenAlignChecker(GPT_CLIENT)
