@@ -8,6 +8,12 @@ NC='\033[0m'
 echo -e "${GREEN}Starting installation process...${NC}"
 git config --global http.postBuffer 524288000
 
+echo -e "${GREEN}Installing flash-attn...${NC}"
+pip install flash-attn==2.7.0.post2 --no-build-isolation || {
+    echo -e "${RED}Failed to install flash-attn${NC}"
+    exit 1
+}
+
 echo -e "${GREEN}Installing dependencies from requirements.txt...${NC}"
 pip install -r requirements.txt --use-deprecated=legacy-resolver --default-timeout=60 || {
     echo -e "${RED}Failed to install requirements${NC}"
@@ -15,16 +21,16 @@ pip install -r requirements.txt --use-deprecated=legacy-resolver --default-timeo
 }
 
 
-echo -e "${GREEN}Installing kaolin from GitHub...${NC}"
-pip install kaolin@git+https://github.com/NVIDIAGameWorks/kaolin.git@v0.16.0 || {
-    echo -e "${RED}Failed to install kaolin${NC}"
+echo -e "${GREEN}Installing kolors from GitHub...${NC}"
+pip install kolors@git+https://github.com/Kwai-Kolors/Kolors.git#egg=038818d || {
+    echo -e "${RED}Failed to install kolors${NC}"
     exit 1
 }
 
 
-echo -e "${GREEN}Installing flash-attn...${NC}"
-pip install flash-attn==2.7.0.post2 --no-build-isolation || {
-    echo -e "${RED}Failed to install flash-attn${NC}"
+echo -e "${GREEN}Installing kaolin from GitHub...${NC}"
+pip install kaolin@git+https://github.com/NVIDIAGameWorks/kaolin.git@v0.16.0 || {
+    echo -e "${RED}Failed to install kaolin${NC}"
     exit 1
 }
 
@@ -39,7 +45,6 @@ rm -rf "$TMP_DIR" || {
     rm -rf "$TMP_DIR"
     exit 1
 }
-echo -e "${GREEN}Installation completed successfully!${NC}"
 
 
 echo -e "${GREEN}Installing gsplat from GitHub...${NC}"
@@ -51,7 +56,7 @@ pip install git+https://github.com/nerfstudio-project/gsplat.git@v1.5.0 || {
 
 echo -e "${GREEN}Installing EmbodiedGen...${NC}"
 pip install -e . || {
-    echo -e "${RED}Failed to install local package${NC}"
+    echo -e "${RED}Failed to install EmbodiedGen pyproject.toml${NC}"
     exit 1
 }
 
