@@ -15,34 +15,24 @@
 # permissions and limitations under the License.
 
 
-import base64
 import logging
 import math
 import os
-import sys
+import textwrap
 from glob import glob
-from io import BytesIO
 from typing import Union
 
 import cv2
 import imageio
+import matplotlib.pyplot as plt
+import networkx as nx
 import numpy as np
 import PIL.Image as Image
 import spaces
-import torch
+from matplotlib.patches import Patch
 from moviepy.editor import VideoFileClip, clips_array
-from tqdm import tqdm
 from embodied_gen.data.differentiable_render import entrypoint as render_api
-
-current_file_path = os.path.abspath(__file__)
-current_dir = os.path.dirname(current_file_path)
-sys.path.append(os.path.join(current_dir, "../.."))
-from thirdparty.TRELLIS.trellis.renderers.mesh_renderer import MeshRenderer
-from thirdparty.TRELLIS.trellis.representations import MeshExtractResult
-from thirdparty.TRELLIS.trellis.utils.render_utils import (
-    render_frames,
-    yaw_pitch_r_fov_to_extrinsics_intrinsics,
-)
+from embodied_gen.utils.enum import LayoutInfo, Scene3DItemEnum
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -53,9 +43,8 @@ __all__ = [
     "merge_images_video",
     "filter_small_connected_components",
     "filter_image_small_connected_components",
-    "combine_images_to_base64",
-    "render_mesh",
-    "render_video",
+    "combine_images_to_grid",
+    "SceneTreeVisualizer",
 ]
 
 
@@ -66,12 +55,13 @@ def render_asset3d(
     distance: float = 5.0,
     num_images: int = 1,
     elevation: list[float] = (0.0,),
-    pbr_light_factor: float = 1.5,
+    pbr_light_factor: float = 1.3,
     return_key: str = "image_color/*",
     output_subdir: str = "renders",
     gen_color_mp4: bool = False,
     gen_viewnormal_mp4: bool = False,
     gen_glonormal_mp4: bool = False,
+    no_index_file: bool = False,
 ) -> list[str]:
     input_args = dict(
         mesh_path=mesh_path,
@@ -82,13 +72,12 @@ def render_asset3d(
         elevation=elevation,
         pbr_light_factor=pbr_light_factor,
         with_mtl=True,
+        gen_color_mp4=gen_color_mp4,
+        gen_viewnormal_mp4=gen_viewnormal_mp4,
+        gen_glonormal_mp4=gen_glonormal_mp4,
+        no_index_file=no_index_file,
     )
-    if gen_color_mp4:
-        input_args["gen_color_mp4"] = True
-    if gen_viewnormal_mp4:
-        input_args["gen_viewnormal_mp4"] = True
-    if gen_glonormal_mp4:
-        input_args["gen_glonormal_mp4"] = True
+
     try:
         _ = render_api(**input_args)
     except Exception as e:
@@ -168,12 +157,15 @@ def filter_image_small_connected_components(
     return image
 
 
-def combine_images_to_base64(
+def combine_images_to_grid(
     images: list[str | Image.Image],
     cat_row_col: tuple[int, int] = None,
     target_wh: tuple[int, int] = (512, 512),
-) -> str:
+) -> list[str | Image.Image]:
     n_images = len(images)
+    if n_images == 1:
+        return images
+
     if cat_row_col is None:
         n_col = math.ceil(math.sqrt(n_images))
         n_row = math.ceil(n_images / n_col)
@@ -182,88 +174,190 @@ def combine_images_to_base64(
 
     images = [
         Image.open(p).convert("RGB") if isinstance(p, str) else p
-        for p in images[: n_row * n_col]
+        for p in images
     ]
     images = [img.resize(target_wh) for img in images]
 
     grid_w, grid_h = n_col * target_wh[0], n_row * target_wh[1]
-    grid = Image.new("RGB", (grid_w, grid_h), (255, 255, 255))
+    grid = Image.new("RGB", (grid_w, grid_h), (0, 0, 0))
 
     for idx, img in enumerate(images):
         row, col = divmod(idx, n_col)
         grid.paste(img, (col * target_wh[0], row * target_wh[1]))
 
-    buffer = BytesIO()
-    grid.save(buffer, format="PNG")
-
-    return base64.b64encode(buffer.getvalue()).decode("utf-8")
+    return [grid]
 
 
-@spaces.GPU
-def render_mesh(sample, extrinsics, intrinsics, options={}, **kwargs):
-    renderer = MeshRenderer()
-    renderer.rendering_options.resolution = options.get("resolution", 512)
-    renderer.rendering_options.near = options.get("near", 1)
-    renderer.rendering_options.far = options.get("far", 100)
-    renderer.rendering_options.ssaa = options.get("ssaa", 4)
-    rets = {}
-    for extr, intr in tqdm(zip(extrinsics, intrinsics), desc="Rendering"):
-        res = renderer.render(sample, extr, intr)
-        if "normal" not in rets:
-            rets["normal"] = []
-        normal = torch.lerp(
-            torch.zeros_like(res["normal"]), res["normal"], res["mask"]
+class SceneTreeVisualizer:
+    def __init__(self, layout_info: LayoutInfo) -> None:
+        self.tree = layout_info.tree
+        self.relation = layout_info.relation
+        self.objs_desc = layout_info.objs_desc
+        self.G = nx.DiGraph()
+        self.root = self._find_root()
+        self._build_graph()
+
+        self.role_colors = {
+            Scene3DItemEnum.BACKGROUND.value: "plum",
+            Scene3DItemEnum.CONTEXT.value: "lightblue",
+            Scene3DItemEnum.ROBOT.value: "lightcoral",
+            Scene3DItemEnum.MANIPULATED_OBJS.value: "lightgreen",
+            Scene3DItemEnum.DISTRACTOR_OBJS.value: "lightgray",
+            Scene3DItemEnum.OTHERS.value: "orange",
+        }
+
+    def _find_root(self) -> str:
+        children = {c for cs in self.tree.values() for c, _ in cs}
+        parents = set(self.tree.keys())
+        roots = parents - children
+        if not roots:
+            raise ValueError("No root node found.")
+        return next(iter(roots))
+
+    def _build_graph(self):
+        for parent, children in self.tree.items():
+            for child, relation in children:
+                self.G.add_edge(parent, child, relation=relation)
+
+    def _get_node_role(self, node: str) -> str:
+        if node == self.relation.get(Scene3DItemEnum.BACKGROUND.value):
+            return Scene3DItemEnum.BACKGROUND.value
+        if node == self.relation.get(Scene3DItemEnum.CONTEXT.value):
+            return Scene3DItemEnum.CONTEXT.value
+        if node == self.relation.get(Scene3DItemEnum.ROBOT.value):
+            return Scene3DItemEnum.ROBOT.value
+        if node in self.relation.get(
+            Scene3DItemEnum.MANIPULATED_OBJS.value, []
+        ):
+            return Scene3DItemEnum.MANIPULATED_OBJS.value
+        if node in self.relation.get(
+            Scene3DItemEnum.DISTRACTOR_OBJS.value, []
+        ):
+            return Scene3DItemEnum.DISTRACTOR_OBJS.value
+        return Scene3DItemEnum.OTHERS.value
+
+    def _get_positions(
+        self, root, width=1.0, vert_gap=0.1, vert_loc=1, xcenter=0.5, pos=None
+    ):
+        if pos is None:
+            pos = {root: (xcenter, vert_loc)}
+        else:
+            pos[root] = (xcenter, vert_loc)
+
+        children = list(self.G.successors(root))
+        if children:
+            dx = width / len(children)
+            next_x = xcenter - width / 2 - dx / 2
+            for child in children:
+                next_x += dx
+                pos = self._get_positions(
+                    child,
+                    width=dx,
+                    vert_gap=vert_gap,
+                    vert_loc=vert_loc - vert_gap,
+                    xcenter=next_x,
+                    pos=pos,
+                )
+        return pos
+
+    def render(
+        self,
+        save_path: str,
+        figsize=(8, 6),
+        dpi=300,
+        title: str = "Scene 3D Hierarchy Tree",
+    ):
+        node_colors = [
+            self.role_colors[self._get_node_role(n)] for n in self.G.nodes
+        ]
+        pos = self._get_positions(self.root)
+
+        plt.figure(figsize=figsize)
+        nx.draw(
+            self.G,
+            pos,
+            with_labels=True,
+            arrows=False,
+            node_size=2000,
+            node_color=node_colors,
+            font_size=10,
+            font_weight="bold",
         )
-        normal = np.clip(
-            normal.detach().cpu().numpy().transpose(1, 2, 0) * 255, 0, 255
-        ).astype(np.uint8)
-        rets["normal"].append(normal)
 
-    return rets
+        # Draw edge labels
+        edge_labels = nx.get_edge_attributes(self.G, "relation")
+        nx.draw_networkx_edge_labels(
+            self.G,
+            pos,
+            edge_labels=edge_labels,
+            font_size=9,
+            font_color="black",
+        )
+
+        # Draw small description text under each node (if available)
+        for node, (x, y) in pos.items():
+            desc = self.objs_desc.get(node)
+            if desc:
+                wrapped = "\n".join(textwrap.wrap(desc, width=30))
+                plt.text(
+                    x,
+                    y - 0.006,
+                    wrapped,
+                    fontsize=6,
+                    ha="center",
+                    va="top",
+                    wrap=True,
+                    color="black",
+                    bbox=dict(
+                        facecolor="dimgray",
+                        edgecolor="darkgray",
+                        alpha=0.1,
+                        boxstyle="round,pad=0.2",
+                    ),
+                )
+
+        plt.title(title, fontsize=12)
+        task_desc = self.relation.get("task_desc", "")
+        if task_desc:
+            plt.suptitle(
+                f"Task Description: {task_desc}", fontsize=10, y=0.999
+            )
+
+        plt.axis("off")
+
+        legend_handles = [
+            Patch(facecolor=color, edgecolor='black', label=role)
+            for role, color in self.role_colors.items()
+        ]
+        plt.legend(
+            handles=legend_handles,
+            loc="lower center",
+            ncol=3,
+            bbox_to_anchor=(0.5, -0.1),
+            fontsize=9,
+        )
+
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
+        plt.savefig(save_path, dpi=dpi, bbox_inches="tight")
+        plt.close()
 
 
-@spaces.GPU
-def render_video(
-    sample,
-    resolution=512,
-    bg_color=(0, 0, 0),
-    num_frames=300,
-    r=2,
-    fov=40,
-    **kwargs,
-):
-    yaws = torch.linspace(0, 2 * 3.1415, num_frames)
-    yaws = yaws.tolist()
-    pitch = [0.5] * num_frames
-    extrinsics, intrinsics = yaw_pitch_r_fov_to_extrinsics_intrinsics(
-        yaws, pitch, r, fov
-    )
-    render_fn = (
-        render_mesh if isinstance(sample, MeshExtractResult) else render_frames
-    )
-    result = render_fn(
-        sample,
-        extrinsics,
-        intrinsics,
-        {"resolution": resolution, "bg_color": bg_color},
-        **kwargs,
-    )
+def load_scene_dict(file_path: str) -> dict:
+    scene_dict = {}
+    with open(file_path, "r", encoding='utf-8') as f:
+        for line in f:
+            line = line.strip()
+            if not line or ":" not in line:
+                continue
+            scene_id, desc = line.split(":", 1)
+            scene_dict[scene_id.strip()] = desc.strip()
 
-    return result
+    return scene_dict
 
 
 if __name__ == "__main__":
-    # Example usage:
     merge_video_video(
         "outputs/imageto3d/room_bottle7/room_bottle_007/URDF_room_bottle_007/mesh_glo_normal.mp4",  # noqa
         "outputs/imageto3d/room_bottle7/room_bottle_007/URDF_room_bottle_007/mesh.mp4",  # noqa
         "merge.mp4",
-    )
-
-    image_base64 = combine_images_to_base64(
-        [
-            "apps/assets/example_image/sample_00.jpg",
-            "apps/assets/example_image/sample_01.jpg",
-            "apps/assets/example_image/sample_02.jpg",
-        ]
     )

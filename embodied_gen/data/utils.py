@@ -38,7 +38,6 @@ except ImportError:
     ChatGLMModel = None
 import logging
 from dataclasses import dataclass, field
-from enum import Enum
 
 import trimesh
 from kaolin.render.camera import Camera
@@ -57,7 +56,6 @@ __all__ = [
     "load_mesh_to_unit_cube",
     "as_list",
     "CameraSetting",
-    "RenderItems",
     "import_kaolin_mesh",
     "save_mesh_with_mtl",
     "get_images_from_grid",
@@ -736,18 +734,6 @@ class CameraSetting:
         ]
 
         self.Ks = Ks
-
-
-@dataclass
-class RenderItems(str, Enum):
-    IMAGE = "image_color"
-    ALPHA = "image_mask"
-    VIEW_NORMAL = "image_view_normal"
-    GLOBAL_NORMAL = "image_global_normal"
-    POSITION_MAP = "image_position"
-    DEPTH = "image_depth"
-    ALBEDO = "image_albedo"
-    DIFFUSE = "image_diffuse"
 
 
 def _compute_az_el_by_camera_params(

@@ -297,20 +297,24 @@ class URDFGenerator(object):
         if not os.path.exists(urdf_path):
             raise FileNotFoundError(f"URDF file not found: {urdf_path}")
 
-        mesh_scale = 1.0
+        mesh_attr = None
         tree = ET.parse(urdf_path)
         root = tree.getroot()
         extra_info = root.find(attr_root)
         if extra_info is not None:
             scale_element = extra_info.find(attr_name)
             if scale_element is not None:
-                mesh_scale = float(scale_element.text)
+                mesh_attr = scale_element.text
+                try:
+                    mesh_attr = float(mesh_attr)
+                except ValueError as e:
+                    pass
 
-        return mesh_scale
+        return mesh_attr
 
     @staticmethod
     def add_quality_tag(
-        urdf_path: str, results, output_path: str = None
+        urdf_path: str, results: list, output_path: str = None
     ) -> None:
         if output_path is None:
             output_path = urdf_path
@@ -366,15 +370,8 @@ class URDFGenerator(object):
             output_root,
             num_images=self.render_view_num,
             output_subdir=self.output_render_dir,
+            no_index_file=True,
         )
-
-        # Hardcode tmp because of the openrouter can't input multi images.
-        if "openrouter" in self.gpt_client.endpoint:
-            from embodied_gen.utils.process_media import (
-                combine_images_to_base64,
-            )
-
-            image_path = combine_images_to_base64(image_path)
 
         response = self.gpt_client.query(text_prompt, image_path)
         if response is None:
@@ -412,12 +409,16 @@ class URDFGenerator(object):
 if __name__ == "__main__":
     urdf_gen = URDFGenerator(GPT_CLIENT, render_view_num=4)
     urdf_path = urdf_gen(
-        mesh_path="outputs/imageto3d/cma/o5/URDF_o5/mesh/o5.obj",
+        mesh_path="outputs/layout2/asset3d/marker/result/mesh/marker.obj",
         output_root="outputs/test_urdf",
-        # category="coffee machine",
+        category="marker",
         # min_height=1.0,
         # max_height=1.2,
         version=VERSION,
+    )
+
+    URDFGenerator.add_quality_tag(
+        urdf_path, [[urdf_gen.__class__.__name__, "OK"]]
     )
 
     # zip_files(
