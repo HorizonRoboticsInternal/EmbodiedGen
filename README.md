@@ -134,14 +134,12 @@ Support Chinese and English prompts.
 bash embodied_gen/scripts/texture_gen.sh \
     --mesh_path "apps/assets/example_texture/meshes/robot_text.obj" \
     --prompt "举着牌子的写实风格机器人，大眼睛，牌子上写着“Hello”的文字" \
-    --output_root "outputs/texture_gen/" \
-    --uuid "robot_text" # uuid -> save subdir
+    --output_root "outputs/texture_gen/robot_text"
 
 bash embodied_gen/scripts/texture_gen.sh \
     --mesh_path "apps/assets/example_texture/meshes/horse.obj" \
     --prompt "A gray horse head with flying mane and brown eyes" \
-    --output_root "outputs/texture_gen/" \
-    --uuid "gray_horse"
+    --output_root "outputs/texture_gen/gray_horse"
 ```
 
 ---

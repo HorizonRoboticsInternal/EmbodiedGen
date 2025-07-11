@@ -470,7 +470,7 @@ def parse_args():
         "--pbr_light_factor",
         type=float,
         default=1.0,
-        help="Light factor for mesh PBR rendering (default: 2.)",
+        help="Light factor for mesh PBR rendering (default: 1.)",
     )
     parser.add_argument(
         "--with_mtl",

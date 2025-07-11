@@ -10,10 +10,6 @@ while [[ $# -gt 0 ]]; do
             prompt="$2"
             shift 2
             ;;
-        --uuid)
-            uuid="$2"
-            shift 2
-            ;;
         --output_root)
             output_root="$2"
             shift 2
@@ -26,12 +22,13 @@ while [[ $# -gt 0 ]]; do
 done
 
 
-if [[ -z "$mesh_path" || -z "$prompt" || -z "$uuid" || -z "$output_root" ]]; then
+if [[ -z "$mesh_path" || -z "$prompt" || -z "$output_root" ]]; then
     echo "params missing"
-    echo "usage: bash run.sh --mesh_path <path> --prompt <text> --uuid <id> --output_root <path>"
+    echo "usage: bash run.sh --mesh_path <path> --prompt <text> --output_root <path>"
     exit 1
 fi
 
+uuid=$(basename "$output_root")
 # Step 1: drender-cli for condition rendering
 drender-cli --mesh_path ${mesh_path} \
     --output_root ${output_root}/condition \
