@@ -6,6 +6,7 @@
 [![🤗 Hugging Face](https://img.shields.io/badge/🤗-Image_to_3D_Demo-blue)](https://huggingface.co/spaces/HorizonRobotics/EmbodiedGen-Image-to-3D)
 [![🤗 Hugging Face](https://img.shields.io/badge/🤗-Text_to_3D_Demo-blue)](https://huggingface.co/spaces/HorizonRobotics/EmbodiedGen-Text-to-3D)
 [![🤗 Hugging Face](https://img.shields.io/badge/🤗-Texture_Gen_Demo-blue)](https://huggingface.co/spaces/HorizonRobotics/EmbodiedGen-Texture-Gen)
+[![中文介绍](https://img.shields.io/badge/中文介绍-07C160?logo=wechat&logoColor=white)](https://mp.weixin.qq.com/s/HH1cPBhK2xcDbyCK4BBTbw)
 
 
 > ***EmbodiedGen*** is a generative engine to create diverse and interactive 3D worlds composed of high-quality 3D assets(mesh & 3DGS) with plausible physics, leveraging generative AI to address the challenges of generalization in embodied intelligence related research.
@@ -29,7 +30,7 @@
 ```sh
 git clone https://github.com/HorizonRobotics/EmbodiedGen.git
 cd EmbodiedGen
-git checkout v0.1.0
+git checkout v0.1.1
 git submodule update --init --recursive --progress
 conda create -n embodiedgen python=3.10.13 -y
 conda activate embodiedgen
@@ -67,9 +68,8 @@ CUDA_VISIBLE_DEVICES=0 nohup python apps/image_to_3d.py > /dev/null 2>&1 &
 ### ⚡ API
 Generate physically plausible 3D assets from image input via the command-line API.
 ```sh
-python3 embodied_gen/scripts/imageto3d.py \
-    --image_path apps/assets/example_image/sample_04.jpg apps/assets/example_image/sample_19.jpg \
-    --output_root outputs/imageto3d
+img3d-cli --image_path apps/assets/example_image/sample_04.jpg apps/assets/example_image/sample_19.jpg \
+    --n_retry 2 --output_root outputs/imageto3d
 
 # See result(.urdf/mesh.obj/mesh.glb/gs.ply) in ${output_root}/sample_xx/result
 ```
@@ -86,18 +86,29 @@ python3 embodied_gen/scripts/imageto3d.py \
 ### ☁️ Service
 Deploy the text-to-3D generation service locally.
 
-Text-to-image based on the Kolors model, supporting Chinese and English prompts.
-Models downloaded automatically on first run, see `download_kolors_weights`, please be patient.
+Text-to-image model based on the Kolors model, supporting Chinese and English prompts.
+Models downloaded automatically on first run, please be patient.
 ```sh
 python apps/text_to_3d.py
 ```
 
 ### ⚡ API
-Text-to-image based on the Kolors model.
+Text-to-image model based on SD3.5 Medium, English prompts only.
+Usage requires agreement to the [model license(click accept)](https://huggingface.co/stabilityai/stable-diffusion-3.5-medium), models downloaded automatically. (ps: models with more permissive licenses found in `embodied_gen/models/image_comm_model.py`)
+
+For large-scale 3D assets generation, set `--n_pipe_retry=2` to ensure high end-to-end 3D asset usability through automatic quality check and retries. For more diverse results, do not set `--seed_img`.
+
+```sh
+text3d-cli --prompts "small bronze figurine of a lion" "A globe with wooden base" "wooden table with embroidery" \
+    --n_image_retry 2 --n_asset_retry 2 --n_pipe_retry 1 --seed_img 0 \
+    --output_root outputs/textto3d
+```
+
+Text-to-image model based on the Kolors model.
 ```sh
 bash embodied_gen/scripts/textto3d.sh \
     --prompts "small bronze figurine of a lion" "A globe with wooden base and latitude and longitude lines" "橙色电动手钻，有磨损细节" \
-    --output_root outputs/textto3d
+    --output_root outputs/textto3d_k
 ```
 
 ---
@@ -118,12 +129,17 @@ python apps/texture_edit.py
 ```
 
 ### ⚡ API
+Support Chinese and English prompts.
 ```sh
 bash embodied_gen/scripts/texture_gen.sh \
     --mesh_path "apps/assets/example_texture/meshes/robot_text.obj" \
     --prompt "举着牌子的写实风格机器人，大眼睛，牌子上写着“Hello”的文字" \
-    --output_root "outputs/texture_gen/" \
-    --uuid "robot_text"
+    --output_root "outputs/texture_gen/robot_text"
+
+bash embodied_gen/scripts/texture_gen.sh \
+    --mesh_path "apps/assets/example_texture/meshes/horse.obj" \
+    --prompt "A gray horse head with flying mane and brown eyes" \
+    --output_root "outputs/texture_gen/gray_horse"
 ```
 
 ---
@@ -171,6 +187,12 @@ bash embodied_gen/scripts/texture_gen.sh \
 
 ---
 
+## For Developer
+```sh
+pip install .[dev] && pre-commit install
+python -m pytest # Pass all unit-test are required.
+```
+
 ## 📚 Citation
 
 If you use EmbodiedGen in your research or projects, please cite:
@@ -192,7 +214,7 @@ If you use EmbodiedGen in your research or projects, please cite:
 ## 🙌 Acknowledgement
 
 EmbodiedGen builds upon the following amazing projects and models:
-🌟 [Trellis](https://github.com/microsoft/TRELLIS) | 🌟 [Hunyuan-Delight](https://huggingface.co/tencent/Hunyuan3D-2/tree/main/hunyuan3d-delight-v2-0) | 🌟 [Segment Anything](https://github.com/facebookresearch/segment-anything) | 🌟 [Rembg](https://github.com/danielgatis/rembg) | 🌟 [RMBG-1.4](https://huggingface.co/briaai/RMBG-1.4) | 🌟 [Stable Diffusion x4](https://huggingface.co/stabilityai/stable-diffusion-x4-upscaler) | 🌟 [Real-ESRGAN](https://github.com/xinntao/Real-ESRGAN) | 🌟 [Kolors](https://github.com/Kwai-Kolors/Kolors) | 🌟 [ChatGLM3](https://github.com/THUDM/ChatGLM3) | 🌟 [Aesthetic Score](http://captions.christoph-schuhmann.de/aesthetic_viz_laion_sac+logos+ava1-l14-linearMSE-en-2.37B.html) | 🌟 [Pano2Room](https://github.com/TrickyGo/Pano2Room) | 🌟 [Diffusion360](https://github.com/ArcherFMY/SD-T2I-360PanoImage) | 🌟 [Kaolin](https://github.com/NVIDIAGameWorks/kaolin) | 🌟 [diffusers](https://github.com/huggingface/diffusers) | 🌟 [gsplat](https://github.com/nerfstudio-project/gsplat) | 🌟 [QWEN2.5VL](https://github.com/QwenLM/Qwen2.5-VL) | 🌟 [GPT4o](https://platform.openai.com/docs/models/gpt-4o)
+🌟 [Trellis](https://github.com/microsoft/TRELLIS) | 🌟 [Hunyuan-Delight](https://huggingface.co/tencent/Hunyuan3D-2/tree/main/hunyuan3d-delight-v2-0) | 🌟 [Segment Anything](https://github.com/facebookresearch/segment-anything) | 🌟 [Rembg](https://github.com/danielgatis/rembg) | 🌟 [RMBG-1.4](https://huggingface.co/briaai/RMBG-1.4) | 🌟 [Stable Diffusion x4](https://huggingface.co/stabilityai/stable-diffusion-x4-upscaler) | 🌟 [Real-ESRGAN](https://github.com/xinntao/Real-ESRGAN) | 🌟 [Kolors](https://github.com/Kwai-Kolors/Kolors) | 🌟 [ChatGLM3](https://github.com/THUDM/ChatGLM3) | 🌟 [Aesthetic Score](http://captions.christoph-schuhmann.de/aesthetic_viz_laion_sac+logos+ava1-l14-linearMSE-en-2.37B.html) | 🌟 [Pano2Room](https://github.com/TrickyGo/Pano2Room) | 🌟 [Diffusion360](https://github.com/ArcherFMY/SD-T2I-360PanoImage) | 🌟 [Kaolin](https://github.com/NVIDIAGameWorks/kaolin) | 🌟 [diffusers](https://github.com/huggingface/diffusers) | 🌟 [gsplat](https://github.com/nerfstudio-project/gsplat) | 🌟 [QWEN-2.5VL](https://github.com/QwenLM/Qwen2.5-VL) | 🌟 [GPT4o](https://platform.openai.com/docs/models/gpt-4o) | 🌟 [SD3.5](https://huggingface.co/stabilityai/stable-diffusion-3.5-medium)
 
 ---
 

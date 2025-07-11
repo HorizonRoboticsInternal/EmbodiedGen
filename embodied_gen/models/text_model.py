@@ -52,8 +52,11 @@ __all__ = [
     "download_kolors_weights",
 ]
 
-
-PROMPT_APPEND = "Full view of one {}, no cropping, centered, no occlusion, isolated product photo, matte, 3D style, on a plain clean surface"
+PROMPT_APPEND = (
+    "Angled 3D view of one {object}, centered, no cropping, no occlusion, isolated product photo, "
+    "no surroundings, matte, on a plain clean surface, 3D style revealing multiple surfaces"
+)
+PROMPT_KAPPEND = "Single {object}, in the center of the image, white background, 3D style, best quality"
 
 
 def download_kolors_weights(local_dir: str = "weights/Kolors") -> None:
@@ -182,9 +185,7 @@ def text2img_gen(
     ip_image_size: int = 512,
     seed: int = None,
 ) -> list[Image.Image]:
-    # prompt = "Single " + prompt + ", in the center of the image"
-    # prompt += ", high quality, high resolution, best quality, white background, 3D style"  # noqa
-    prompt = PROMPT_APPEND.format(prompt.strip())
+    prompt = PROMPT_KAPPEND.format(object=prompt.strip())
     logger.info(f"Processing prompt: {prompt}")
 
     generator = None

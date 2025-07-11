@@ -33,7 +33,6 @@ from tqdm import tqdm
 from embodied_gen.data.utils import (
     CameraSetting,
     DiffrastRender,
-    RenderItems,
     as_list,
     calc_vertex_normals,
     import_kaolin_mesh,
@@ -42,6 +41,7 @@ from embodied_gen.data.utils import (
     render_pbr,
     save_images,
 )
+from embodied_gen.utils.enum import RenderItems
 
 os.environ["OPENCV_IO_ENABLE_OPENEXR"] = "1"
 os.environ["TORCH_EXTENSIONS_DIR"] = os.path.expanduser(
@@ -470,7 +470,7 @@ def parse_args():
         "--pbr_light_factor",
         type=float,
         default=1.0,
-        help="Light factor for mesh PBR rendering (default: 2.)",
+        help="Light factor for mesh PBR rendering (default: 1.)",
     )
     parser.add_argument(
         "--with_mtl",
@@ -481,6 +481,11 @@ def parse_args():
         "--gen_color_gif",
         action="store_true",
         help="Whether to generate color .gif rendering file.",
+    )
+    parser.add_argument(
+        "--no_index_file",
+        action="store_true",
+        help="Whether skip the index file saving.",
     )
     parser.add_argument(
         "--gen_color_mp4",
@@ -568,7 +573,7 @@ def entrypoint(**kwargs) -> None:
         gen_viewnormal_mp4=args.gen_viewnormal_mp4,
         gen_glonormal_mp4=args.gen_glonormal_mp4,
         light_factor=args.pbr_light_factor,
-        no_index_file=gen_video,
+        no_index_file=gen_video or args.no_index_file,
     )
     image_render.render_mesh(
         mesh_path=args.mesh_path,

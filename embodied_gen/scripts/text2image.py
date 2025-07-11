@@ -85,7 +85,7 @@ def parse_args():
     parser.add_argument(
         "--seed",
         type=int,
-        default=0,
+        default=None,
     )
     args = parser.parse_args()
 

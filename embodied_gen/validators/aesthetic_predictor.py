@@ -102,7 +102,7 @@ class AestheticPredictor:
     def _load_sac_model(self, model_path, input_size):
         """Load the SAC model."""
         model = self.MLP(input_size)
-        ckpt = torch.load(model_path)
+        ckpt = torch.load(model_path, weights_only=True)
         model.load_state_dict(ckpt)
         model.to(self.device)
         model.eval()
@@ -135,15 +135,3 @@ class AestheticPredictor:
             )
 
         return prediction.item()
-
-
-if __name__ == "__main__":
-    # Configuration
-    img_path = "apps/assets/example_image/sample_00.jpg"
-
-    # Initialize the predictor
-    predictor = AestheticPredictor()
-
-    # Predict the aesthetic score
-    score = predictor.predict(img_path)
-    print("Aesthetic score predicted by the model:", score)

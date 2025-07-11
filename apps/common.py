@@ -55,9 +55,9 @@ from embodied_gen.utils.gpt_clients import GPT_CLIENT
 from embodied_gen.utils.process_media import (
     filter_image_small_connected_components,
     merge_images_video,
-    render_video,
 )
 from embodied_gen.utils.tags import VERSION
+from embodied_gen.utils.trender import render_video
 from embodied_gen.validators.quality_checkers import (
     BaseChecker,
     ImageAestheticChecker,

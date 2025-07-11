@@ -395,6 +395,8 @@ class MeshFixer(object):
             self.vertices_np,
             np.hstack([np.full((self.faces.shape[0], 1), 3), self.faces_np]),
         )
+        mesh.clean(inplace=True)
+        mesh.clear_data()
         mesh = mesh.decimate(ratio, progress_bar=True)
 
         # Update vertices and faces
