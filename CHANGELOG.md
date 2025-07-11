@@ -5,15 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0).
 
 
-## [0.1.1] - 2025-07-11
+## [0.1.1] - 2025-07-xx
 ### Feature
-- Added intelligent quality checker and auto-retry pipeline for `image-to-3d` and `text-to-3d`.
+- Added intelligent quality checkers and auto-retry pipeline for `image-to-3d` and `text-to-3d`.
 - Added unit tests for quality checkers.
-- `text-to-3d` now supports more text-to-image models, pipeline success rate improved to 94%.
+- `text-to-3d` now supports more `text-to-image` models, pipeline success rate improved to 94%.
 
 ## [0.1.0] - 2025-07-04
 ### Feature
-🖼️ Single Image to Realistic 3D Asset
+🖼️ Single Image to Physics Realistic 3D Asset
 - Generates watertight, simulation-ready 3D meshes with physical attributes.
 - Auto-labels semantic and quality tags (geometry, texture, foreground, etc.).
 - Produces 2K textures with highlight removal and multi-view fusion.
