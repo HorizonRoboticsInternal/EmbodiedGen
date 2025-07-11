@@ -6,6 +6,7 @@
 [![🤗 Hugging Face](https://img.shields.io/badge/🤗-Image_to_3D_Demo-blue)](https://huggingface.co/spaces/HorizonRobotics/EmbodiedGen-Image-to-3D)
 [![🤗 Hugging Face](https://img.shields.io/badge/🤗-Text_to_3D_Demo-blue)](https://huggingface.co/spaces/HorizonRobotics/EmbodiedGen-Text-to-3D)
 [![🤗 Hugging Face](https://img.shields.io/badge/🤗-Texture_Gen_Demo-blue)](https://huggingface.co/spaces/HorizonRobotics/EmbodiedGen-Texture-Gen)
+[![中文介绍](https://img.shields.io/badge/中文介绍-07C160?logo=wechat&logoColor=white)](https://mp.weixin.qq.com/s/HH1cPBhK2xcDbyCK4BBTbw)
 
 
 > ***EmbodiedGen*** is a generative engine to create diverse and interactive 3D worlds composed of high-quality 3D assets(mesh & 3DGS) with plausible physics, leveraging generative AI to address the challenges of generalization in embodied intelligence related research.
@@ -93,7 +94,9 @@ python apps/text_to_3d.py
 
 ### ⚡ API
 Text-to-image model based on SD3.5 Medium, English prompts only.
-Usage requires agreement to the [model license](https://huggingface.co/stabilityai/stable-diffusion-3.5-medium), models downloaded automatically. (ps: models with more permissive licenses found in `embodied_gen/models/image_comm_model.py`)
+Usage requires agreement to the [model license(click accept)](https://huggingface.co/stabilityai/stable-diffusion-3.5-medium), models downloaded automatically. (ps: models with more permissive licenses found in `embodied_gen/models/image_comm_model.py`)
+
+For large-scale 3D assets generation, set `--n_pipe_retry=2` to ensure high end-to-end 3D asset usability through automatic quality check and retries. For more diverse results, do not set `--seed_img`.
 
 ```sh
 text3d-cli --prompts "small bronze figurine of a lion" "A globe with wooden base" "wooden table with embroidery" \
@@ -132,7 +135,13 @@ bash embodied_gen/scripts/texture_gen.sh \
     --mesh_path "apps/assets/example_texture/meshes/robot_text.obj" \
     --prompt "举着牌子的写实风格机器人，大眼睛，牌子上写着“Hello”的文字" \
     --output_root "outputs/texture_gen/" \
-    --uuid "robot_text"
+    --uuid "robot_text" # uuid -> save subdir
+
+bash embodied_gen/scripts/texture_gen.sh \
+    --mesh_path "apps/assets/example_texture/meshes/horse.obj" \
+    --prompt "A gray horse head with flying mane and brown eyes" \
+    --output_root "outputs/texture_gen/" \
+    --uuid "gray_horse"
 ```
 
 ---
@@ -182,8 +191,8 @@ bash embodied_gen/scripts/texture_gen.sh \
 
 ## For Developer
 ```sh
-pip install .[dev]
-pytest # Pass all unit-test are required.
+pip install .[dev] && pre-commit install
+python -m pytest # Pass all unit-test are required.
 ```
 
 ## 📚 Citation

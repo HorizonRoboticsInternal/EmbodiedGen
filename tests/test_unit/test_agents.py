@@ -15,4 +15,81 @@
 # permissions and limitations under the License.
 
 
-# TODO
+from unittest.mock import patch
+
+import pytest
+from PIL import Image
+from embodied_gen.utils.gpt_clients import GPT_CLIENT
+from embodied_gen.validators.quality_checkers import (
+    ImageSegChecker,
+    MeshGeoChecker,
+    SemanticConsistChecker,
+)
+
+
+@pytest.fixture(autouse=True)
+def gptclient_query():
+    with patch.object(
+        GPT_CLIENT, "query", return_value="mocked gpt response"
+    ) as mock:
+        yield mock
+
+
+@pytest.fixture()
+def gptclient_query_case2():
+    with patch.object(GPT_CLIENT, "query", return_value=None) as mock:
+        yield mock
+
+
+@pytest.mark.parametrize(
+    "input_images",
+    [
+        "dummy_path/color_grid_6view.png",
+        ["dummy_path/color_grid_6view.jpg"],
+        [
+            "dummy_path/color_grid_6view.png",
+            "dummy_path/color_grid_6view2.png",
+        ],
+        [
+            Image.new("RGB", (64, 64), "red"),
+            Image.new("RGB", (64, 64), "blue"),
+        ],
+    ],
+)
+def test_geo_checker_varied_inputs(input_images):
+    geo_checker = MeshGeoChecker(GPT_CLIENT)
+    flag, result = geo_checker(input_images)
+    assert isinstance(flag, (bool, type(None)))
+    assert isinstance(result, str)
+
+
+def test_seg_checker():
+    seg_checker = ImageSegChecker(GPT_CLIENT)
+    flag, result = seg_checker(
+        [
+            "dummy_path/sample_0_raw.png",  # raw image
+            "dummy_path/sample_0_cond.png",  # segmented image
+        ]
+    )
+    assert isinstance(flag, (bool, type(None)))
+    assert isinstance(result, str)
+
+
+def test_semantic_checker():
+    semantic_checker = SemanticConsistChecker(GPT_CLIENT)
+    flag, result = semantic_checker(
+        text="pen",
+        image=["dummy_path/pen.png"],
+    )
+    assert isinstance(flag, (bool, type(None)))
+    assert isinstance(result, str)
+
+
+def test_semantic_checker(gptclient_query_case2):
+    semantic_checker = SemanticConsistChecker(GPT_CLIENT)
+    flag, result = semantic_checker(
+        text="pen",
+        image=["dummy_path/pen.png"],
+    )
+    assert isinstance(flag, (bool, type(None)))
+    assert isinstance(result, str)
