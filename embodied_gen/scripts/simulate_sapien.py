@@ -91,17 +91,16 @@ def entrypoint(**kwargs):
         fovy_deg=cfg.fovy_deg,
     )
     with open(cfg.layout_path, "r") as f:
-        layout_data = json.load(f)
-        layout_data: LayoutInfo = LayoutInfo.from_dict(layout_data)
+        layout_data: LayoutInfo = LayoutInfo.from_dict(json.load(f))
 
     actors = load_assets_from_layout_file(
         scene_manager.scene,
-        layout_data,
+        cfg.layout_path,
         cfg.z_offset,
         cfg.init_quat,
     )
     agent = load_mani_skill_robot(
-        scene_manager.scene, layout_data, cfg.control_freq
+        scene_manager.scene, cfg.layout_path, cfg.control_freq
     )
 
     frames = defaultdict(list)
@@ -134,8 +133,9 @@ def entrypoint(**kwargs):
     if "Foreground" not in cfg.render_keys:
         return
 
+    asset_root = os.path.dirname(cfg.layout_path)
     bg_node = layout_data.relation[Scene3DItemEnum.BACKGROUND.value]
-    gs_path = f"{layout_data.assets[bg_node]}/gs_model.ply"
+    gs_path = f"{asset_root}/{layout_data.assets[bg_node]}/gs_model.ply"
     gs_model: GaussianOperator = GaussianOperator.load_from_ply(gs_path)
     x, y, z, qx, qy, qz, qw = layout_data.position[bg_node]
     qx, qy, qz, qw = quaternion_multiply([qx, qy, qz, qw], cfg.init_quat)
