@@ -19,7 +19,7 @@ import logging
 import os
 import xml.etree.ElementTree as ET
 from collections import defaultdict
-from typing import Literal
+from typing import Literal, List
 
 import mplib
 import numpy as np
@@ -28,9 +28,9 @@ import sapien.physx as physx
 import torch
 from mani_skill.agents.base_agent import BaseAgent
 from mani_skill.envs.scene import ManiSkillScene
-from mani_skill.examples.motionplanning.panda.utils import (
-    compute_grasp_info_by_obb,
-)
+# from mani_skill.examples.motionplanning.panda.utils import (
+#     compute_grasp_info_by_obb,
+# )
 from mani_skill.utils.geometry.trimesh_utils import get_component_mesh
 from PIL import Image, ImageColor
 from scipy.spatial.transform import Rotation as R
@@ -128,6 +128,8 @@ def load_assets_from_layout_file(
     z_offset: float = 0.0,
     init_quat: list[float] = [0, 0, 0, 1],
     env_idx: int = None,
+    objects_to_exclude: List[str] = None,
+    objects_to_include: List[str] = None,
 ) -> dict[str, sapien.pysapien.Entity]:
     """Load assets from `EmbodiedGen` layout-gen output and create actors in the scene.
 
@@ -137,11 +139,19 @@ def load_assets_from_layout_file(
         z_offset (float): Offset to apply to the Z-coordinate of non-context objects.
         init_quat (List[float]): Initial quaternion (x, y, z, w) for orientation adjustment.
         env_idx (int): Environment index for multi-environment setup.
+        objects_to_exclude (List[str]): List of objects to exclude from loading.
+        objects_to_include (List[str]): List of objects to include in loading.
     """
+    assert (objects_to_include is not None) ^ (objects_to_exclude is not None), \
+        "Both objects_to_include and objects_to_exclude cannot be specified at the same time."
     asset_root = os.path.dirname(layout)
     layout = LayoutInfo.from_dict(json.load(open(layout, "r")))
     actors = dict()
     for node in layout.assets:
+        if objects_to_exclude is not None and node in objects_to_exclude:
+            continue
+        if objects_to_include is not None and node not in objects_to_include:
+            continue
         file_dir = layout.assets[node]
         file_name = f"{node.replace(' ', '_')}.urdf"
         urdf_file = os.path.join(asset_root, file_dir, file_name)
