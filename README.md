@@ -23,6 +23,7 @@
 - [🌍 3D Scene Generation](#3d-scene-generation)
 - [⚙️ Articulated Object Generation](#articulated-object-generation)
 - [🏞️ Layout (Interactive 3D Worlds) Generation](#layout-generation)
+- [🎮 Any Simulators](#any-simulators)
 
 ## 🚀 Quick Start
 
@@ -30,7 +31,7 @@
 ```sh
 git clone https://github.com/HorizonRobotics/EmbodiedGen.git
 cd EmbodiedGen
-git checkout v0.1.4
+git checkout v0.1.5
 git submodule update --init --recursive --progress
 conda create -n embodiedgen python=3.10.13 -y # recommended to use a new env.
 conda activate embodiedgen
@@ -264,6 +265,23 @@ python embodied_gen/scripts/parallel_sim.py \
 ### 🖼️ Real-to-Sim Digital Twin
 
 <img src="apps/assets/real2sim_mujoco.gif" alt="real2sim_mujoco" width="400">
+
+---
+
+<h2 id="any-simulators">🎮 Any Simulators</h2>
+
+Use EmbodiedGen-generated assets with correct physical collisions and consistent visual effects in any simulator
+([isaacsim](https://github.com/isaac-sim/IsaacSim), [mujoco](https://github.com/google-deepmind/mujoco), [genesis](https://github.com/Genesis-Embodied-AI/Genesis), [pybullet](https://github.com/bulletphysics/bullet3), [isaacgym](https://github.com/isaac-sim/IsaacGymEnvs), [sapien](https://github.com/haosulab/SAPIEN)).
+Example in `tests/test_examples/test_asset_converter.py`.
+
+| Simulator | Conversion Class |
+|-----------|------------------|
+| [isaacsim](https://github.com/isaac-sim/IsaacSim) | MeshtoUSDConverter |
+| [mujoco](https://github.com/google-deepmind/mujoco) | MeshtoMJCFConverter |
+| [genesis](https://github.com/Genesis-Embodied-AI/Genesis) / [sapien](https://github.com/haosulab/SAPIEN) / [isaacgym](https://github.com/isaac-sim/IsaacGymEnvs) / [pybullet](https://github.com/bulletphysics/bullet3) | EmbodiedGen generated .urdf can be used directly |
+
+
+<img src="apps/assets/simulators_collision.jpg" alt="simulators_collision" width="500">
 
 ---
 
