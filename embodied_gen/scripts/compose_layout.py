@@ -16,6 +16,7 @@
 
 import json
 import os
+import shutil
 from dataclasses import dataclass
 
 import tyro
@@ -51,6 +52,12 @@ def entrypoint(**kwargs):
     out_layout_path = f"{output_dir}/layout.json"
 
     layout_info = bfs_placement(args.layout_path, seed=args.seed)
+    origin_dir = os.path.dirname(args.layout_path)
+    for key in layout_info.assets:
+        src = f"{origin_dir}/{layout_info.assets[key]}"
+        dst = f"{output_dir}/{layout_info.assets[key]}"
+        shutil.copytree(src, dst, dirs_exist_ok=True)
+
     with open(out_layout_path, "w") as f:
         json.dump(layout_info.to_dict(), f, indent=4)
 
@@ -60,7 +67,7 @@ def entrypoint(**kwargs):
     sim_cli(
         layout_path=out_layout_path,
         output_dir=output_dir,
-        robot_name="franka" if args.insert_robot else None,
+        insert_robot=args.insert_robot,
     )
 
     logger.info(f"Layout placement completed in {output_dir}")
