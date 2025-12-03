@@ -167,15 +167,15 @@ def load_assets_from_layout_file(
         objects_to_exclude (List[str]): List of objects to exclude from loading.
         objects_to_include (List[str]): List of objects to include in loading.
     """
-    assert (objects_to_include is not None) ^ (objects_to_exclude is not None), \
+    assert not (objects_to_include and objects_to_exclude), \
         "Both objects_to_include and objects_to_exclude cannot be specified at the same time."
     asset_root = os.path.dirname(layout)
     layout = LayoutInfo.from_dict(json.load(open(layout, "r")))
     actors = dict()
     for node in layout.assets:
-        if objects_to_exclude is not None and node in objects_to_exclude:
+        if objects_to_exclude is not None and any(obj in node for obj in objects_to_exclude):
             continue
-        if objects_to_include is not None and node not in objects_to_include:
+        if objects_to_include is not None and not any(obj in node for obj in objects_to_include):
             continue
         file_dir = layout.assets[node]
         file_name = f"{node.replace(' ', '_')}.urdf"
@@ -205,7 +205,19 @@ def load_assets_from_layout_file(
         )
         actors[node] = actor
 
-    return actors
+    task_desc = layout.relation['task_desc']
+    non_distractors = []
+    for node in layout.assets:
+        idx = task_desc.find(node)
+        if idx != -1 and layout.objs_mapping[node] == Scene3DItemEnum.MANIPULATED_OBJS.value:
+            non_distractors.append((node, idx))
+    assert len(non_distractors) == 2
+    non_distractors.sort(key=lambda x: x[1])
+
+    graspable = non_distractors[0][0]
+    placeable = non_distractors[1][0]
+
+    return actors, graspable, placeable
 
 
 def load_mani_skill_robot(
