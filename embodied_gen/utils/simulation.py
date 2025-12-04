@@ -202,22 +202,27 @@ def load_assets_from_layout_file(
             env_idx,
             use_static=use_static,
             update_mass=False,
+            scale=0.7 if layout.objs_mapping[node] == Scene3DItemEnum.MANIPULATED_OBJS.value else 1.0
         )
         actors[node] = actor
 
     task_desc = layout.relation['task_desc']
     non_distractors = []
+    table = None
     for node in layout.assets:
         idx = task_desc.find(node)
         if idx != -1 and layout.objs_mapping[node] == Scene3DItemEnum.MANIPULATED_OBJS.value:
             non_distractors.append((node, idx))
+        elif layout.objs_mapping[node] == Scene3DItemEnum.CONTEXT.value:
+            table = node
     assert len(non_distractors) == 2
+    assert table is not None
     non_distractors.sort(key=lambda x: x[1])
 
     graspable = non_distractors[0][0]
     placeable = non_distractors[1][0]
 
-    return actors, graspable, placeable
+    return actors, graspable, placeable, table
 
 
 def load_mani_skill_robot(
