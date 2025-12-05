@@ -171,8 +171,27 @@ def load_assets_from_layout_file(
         "Both objects_to_include and objects_to_exclude cannot be specified at the same time."
     asset_root = os.path.dirname(layout)
     layout = LayoutInfo.from_dict(json.load(open(layout, "r")))
+
+    task_desc = layout.relation['task_desc']
+    non_distractors = []
+    table = None
+    for node in layout.assets:
+        idx = task_desc.find(node)
+        if idx != -1 and layout.objs_mapping[node] == Scene3DItemEnum.MANIPULATED_OBJS.value:
+            non_distractors.append((node, idx))
+        elif layout.objs_mapping[node] == Scene3DItemEnum.CONTEXT.value:
+            table = node
+    assert len(non_distractors) == 2
+    assert table is not None
+    non_distractors.sort(key=lambda x: x[1])
+
+    graspable = non_distractors[0][0]
+    placeable = non_distractors[1][0]
+
     actors = dict()
     for node in layout.assets:
+        if layout.objs_mapping[node] == Scene3DItemEnum.DISTRACTOR_OBJS.value:
+            continue
         if objects_to_exclude is not None and any(obj in node for obj in objects_to_exclude):
             continue
         if objects_to_include is not None and not any(obj in node for obj in objects_to_include):
@@ -205,22 +224,6 @@ def load_assets_from_layout_file(
             scale=0.7 if layout.objs_mapping[node] == Scene3DItemEnum.MANIPULATED_OBJS.value else 1.0
         )
         actors[node] = actor
-
-    task_desc = layout.relation['task_desc']
-    non_distractors = []
-    table = None
-    for node in layout.assets:
-        idx = task_desc.find(node)
-        if idx != -1 and layout.objs_mapping[node] == Scene3DItemEnum.MANIPULATED_OBJS.value:
-            non_distractors.append((node, idx))
-        elif layout.objs_mapping[node] == Scene3DItemEnum.CONTEXT.value:
-            table = node
-    assert len(non_distractors) == 2
-    assert table is not None
-    non_distractors.sort(key=lambda x: x[1])
-
-    graspable = non_distractors[0][0]
-    placeable = non_distractors[1][0]
 
     return actors, graspable, placeable, table
 
